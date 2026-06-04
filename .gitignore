@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# 环境密钥（绝不入库）
+.env
+
+# 运行时产物：用户的项目数据
+projects/
+
+# 系统
+.DS_Store
