@@ -77,3 +77,16 @@ def test_full_flow(client):
 
 def test_get_missing_project(client):
     assert client.get("/api/projects/nope").status_code == 404
+
+
+def test_list_projects(client):
+    # 初始为空
+    assert client.get("/api/projects").json() == []
+    # 建两个项目后列表有两条
+    client.post("/api/projects", json={"novel_text": NOVEL, "title": "甲", "auto_run": False})
+    client.post("/api/projects", json={"novel_text": NOVEL, "title": "乙", "auto_run": False})
+    items = client.get("/api/projects").json()
+    assert len(items) == 2
+    titles = {it["title"] for it in items}
+    assert titles == {"甲", "乙"}
+    assert all("shot_count" in it and "updated_at" in it for it in items)

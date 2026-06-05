@@ -79,6 +79,28 @@ def run_project(project_id: str, body: RunBody, bg: BackgroundTasks) -> dict:
     return {"id": project_id, "started": True}
 
 
+@app.get("/api/projects")
+def list_projects() -> list[dict]:
+    """列出所有项目（前端「我的项目」用）。返回概要，按更新时间倒序。"""
+    out = []
+    for p in pm.list_all():
+        shot_count = 0
+        if p.script_path:
+            try:
+                shot_count = len(pm.load_script(p).shots)
+            except Exception:
+                shot_count = 0
+        out.append({
+            "id": p.id,
+            "title": p.title,
+            "status": p.status.value,
+            "shot_count": shot_count,
+            "char_count": len(p.characters),
+            "updated_at": p.updated_at,
+        })
+    return out
+
+
 @app.get("/api/projects/{project_id}")
 def get_project(project_id: str) -> dict:
     """查项目状态（前端每 2 秒轮询）。返回状态 + 已提取的资产。"""

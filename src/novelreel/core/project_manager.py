@@ -72,6 +72,21 @@ class ProjectManager:
     def exists(self, project_id: str) -> bool:
         return self._project_json(project_id).exists()
 
+    def list_all(self) -> list[Project]:
+        """列出所有项目，按更新时间倒序（最近的在前）。
+
+        给前端「我的项目」用。坏掉的项目目录（缺 project.json）自动跳过。
+        """
+        projects: list[Project] = []
+        for child in self.root.iterdir():
+            if child.is_dir() and (child / "project.json").exists():
+                try:
+                    projects.append(self.load(child.name))
+                except Exception:
+                    continue  # 跳过损坏的项目，不让一个坏目录拖垮整个列表
+        projects.sort(key=lambda p: p.updated_at, reverse=True)
+        return projects
+
     # ---- 小说原文 ----
     def read_novel(self, project: Project) -> str:
         """读取项目的小说原文。
