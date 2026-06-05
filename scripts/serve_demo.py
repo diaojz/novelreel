@@ -11,6 +11,7 @@
     uv run uvicorn novelreel.api:app --reload
 """
 
+import os
 import time
 from unittest.mock import MagicMock
 
@@ -60,9 +61,18 @@ _fake = _fake_llm()
 ea.LLMClient = lambda *a, **k: _fake
 gs.LLMClient = lambda *a, **k: _fake
 
+# 演示模式也强制图片/视频走「占位降级」：把它们的密钥配置清空，
+# 这样 ImageClient/VideoClient 走 _placeholder 分支（占位图 + ffmpeg 占位视频），
+# 不会拿 .env 里的占位符 key 去真调豆包接口（那样会超时）。
+os.environ["NOVELREEL_LLM_API_KEY"] = ""
+os.environ["NOVELREEL_MEDIA_API_KEY"] = ""
+
 # 必须在打补丁之后再导入 app（api 不直接 new LLMClient，但保险起见放后面）
 from novelreel.api import app  # noqa: E402
 
 if __name__ == "__main__":
-    print("演示模式启动（假 LLM，无需密钥）→ http://127.0.0.1:8000")
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    # host/port 可由环境变量覆盖（部署时绑 0.0.0.0:8080）
+    host = os.getenv("NOVELREEL_HOST", "127.0.0.1")
+    port = int(os.getenv("NOVELREEL_PORT", "8000"))
+    print(f"演示模式启动（假 LLM + 占位图/视频，无需密钥）→ http://{host}:{port}")
+    uvicorn.run(app, host=host, port=port)
