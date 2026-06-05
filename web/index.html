@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NovelReel · 小说拆分镜</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Playfair+Display:ital,wght@1,600;1,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f4f4f5; --panel:#ffffff; --panel-2:#fafafa;
+  --ink:#1a1a1a; --ink-2:#5c5c5c; --ink-3:#9b9b9b;
+  --line:#ececec; --line-2:#e0e0e0;
+  --accent:#7c5cff; --accent-bg:#efeaff;
+  --ok:#1f9d55; --ok-bg:#e3f6ec; --warn:#b07d18; --warn-bg:#fbf0d4; --err:#e0483d; --err-bg:#fdeae8;
+  --r-sm:8px; --r-md:14px; --r-lg:20px; --r-xl:28px;
+  --shadow-card:0 1px 2px rgba(0,0,0,.04), 0 8px 24px -12px rgba(0,0,0,.10);
+  --shadow-pop:0 12px 40px -8px rgba(0,0,0,.18);
+  --font:'Noto Sans SC','PingFang SC',sans-serif; --mono:'JetBrains Mono',Consolas,monospace; --display:'Playfair Display',serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--ink); font-family:var(--font); font-size:15px; -webkit-font-smoothing:antialiased; }
+.app { display:flex; min-height:100vh; }
+.sidebar { width:248px; flex-shrink:0; padding:16px; }
+.side-inner { background:var(--panel); border-radius:var(--r-lg); padding:20px 16px; height:calc(100vh - 32px); position:sticky; top:16px; box-shadow:var(--shadow-card); display:flex; flex-direction:column; }
+.brand { display:flex; align-items:center; gap:10px; padding:4px 8px 22px; }
+.brand .logo { width:34px; height:34px; border-radius:10px; background:var(--ink); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.brand .logo svg { width:19px; height:19px; }
+.brand .name { font-size:19px; font-weight:700; letter-spacing:-.01em; }
+.nav-item { display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:12px; font-size:15px; font-weight:500; color:var(--ink-2); cursor:pointer; transition:background .15s, color .15s; margin-bottom:4px; }
+.nav-item svg { width:18px; height:18px; flex-shrink:0; opacity:.8; }
+.nav-item:hover { background:var(--panel-2); color:var(--ink); }
+.nav-item.on { background:#f0eefe; color:var(--accent); font-weight:600; }
+.nav-item.on svg { opacity:1; }
+.side-foot { margin-top:auto; padding:14px 10px 4px; font-size:12px; color:var(--ink-3); line-height:1.6; border-top:1px solid var(--line); }
+.main { flex:1; min-width:0; display:flex; flex-direction:column; }
+.topbar { display:flex; align-items:center; justify-content:flex-end; gap:14px; padding:18px 32px; }
+.topbar .ghost-link { font-size:14px; color:var(--ink-3); }
+.content { padding:8px 32px 80px; max-width:1100px; width:100%; margin:0 auto; }
+.hero { text-align:center; padding:40px 0 28px; }
+.hero h1 { font-size:46px; font-weight:700; letter-spacing:-.02em; line-height:1.15; }
+.hero h1 .disp { font-family:var(--display); font-style:italic; font-weight:700; letter-spacing:0; }
+.hero .sub { font-size:16px; color:var(--ink-2); margin-top:16px; }
+.hero .sub .u { background:linear-gradient(transparent 60%, var(--accent-bg) 60%); padding:0 2px; }
+.tabs { display:flex; gap:4px; justify-content:center; max-width:720px; margin:0 auto; }
+.tab { flex:1; text-align:center; padding:14px; font-size:15px; font-weight:600; color:var(--ink-3); border-radius:var(--r-md) var(--r-md) 0 0; }
+.tab.on { color:var(--ink); background:var(--panel); }
+.input-card { background:var(--panel); border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg); box-shadow:var(--shadow-card); max-width:720px; margin:0 auto; padding:28px; }
+.btn-pill-dark { background:var(--ink); color:#fff; border:none; border-radius:22px; padding:11px 22px; font-size:14px; font-weight:600; font-family:var(--font); cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:transform .12s, opacity .15s; }
+.btn-pill-dark:hover { transform:translateY(-1px); }
+.btn-pill-dark:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+.btn-pill-line { background:#fff; color:var(--ink); border:1.5px solid var(--line-2); border-radius:22px; padding:11px 22px; font-size:14px; font-weight:600; font-family:var(--font); cursor:pointer; transition:border-color .15s; }
+.btn-pill-line:hover { border-color:var(--ink); }
+.novel-area { width:100%; min-height:180px; border:none; outline:none; resize:vertical; font-family:var(--font); font-size:15px; line-height:1.8; color:var(--ink); background:transparent; }
+.novel-area::placeholder { color:var(--ink-3); }
+.card-foot { display:flex; align-items:center; justify-content:space-between; margin-top:16px; padding-top:16px; border-top:1px solid var(--line); flex-wrap:wrap; gap:12px; }
+.foot-left { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+.mini-field { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-2); }
+.mini-field input { width:64px; padding:7px 10px; border:1.5px solid var(--line-2); border-radius:10px; text-align:center; font-family:var(--font); font-size:14px; outline:none; }
+.mini-field input:focus { border-color:var(--accent); }
+.cc { font-family:var(--mono); font-size:12px; color:var(--ink-3); }
+.below-hint { text-align:center; margin-top:18px; font-size:13px; color:var(--ink-3); }
+.stepper { display:flex; align-items:center; justify-content:center; margin:8px auto 32px; max-width:640px; }
+.step { display:flex; align-items:center; gap:9px; padding:8px 18px; border-radius:22px; font-size:14px; font-weight:500; background:var(--panel); border:1px solid var(--line); color:var(--ink-3); white-space:nowrap; transition:all .25s; }
+.step .dot { width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; border:1.5px solid currentColor; }
+.step--active { background:var(--accent-bg); color:var(--accent); border-color:var(--accent); font-weight:600; }
+.step--done { background:var(--ok-bg); color:var(--ok); border-color:rgba(31,157,85,.4); }
+.step--error { background:var(--err-bg); color:var(--err); border-color:rgba(224,72,61,.5); font-weight:600; }
+.step-line { width:40px; height:1.5px; background:var(--line-2); margin:0 6px; transition:background .25s; }
+.step-line--done { background:rgba(31,157,85,.4); }
+.collapsed-bar { display:flex; align-items:center; gap:12px; padding:14px 20px; background:var(--panel); border-radius:var(--r-md); margin-bottom:22px; box-shadow:var(--shadow-card); max-width:880px; margin-left:auto; margin-right:auto; }
+.collapsed-bar .caret { color:var(--ink-3); font-size:11px; }
+.collapsed-bar .label { font-weight:600; font-size:14px; }
+.collapsed-bar .meta { font-family:var(--mono); font-size:12px; color:var(--ink-3); }
+.collapsed-bar .sp { margin-left:auto; }
+.link-ghost { background:none; border:none; color:var(--ink-2); font-size:13px; cursor:pointer; font-family:var(--font); text-decoration:underline dotted; text-underline-offset:3px; }
+.link-ghost:hover { color:var(--ink); }
+.banner { display:flex; align-items:flex-start; gap:14px; padding:20px 22px; border-radius:var(--r-md); margin:0 auto 24px; max-width:880px; }
+.banner--proc { background:var(--panel); box-shadow:var(--shadow-card); border:1px solid var(--accent-bg); }
+.banner--err { background:var(--err-bg); border:1px solid rgba(224,72,61,.35); }
+.banner-title { font-size:15px; font-weight:600; display:flex; align-items:center; gap:8px; }
+.banner--proc .banner-title { color:var(--accent); }
+.banner--err .banner-title { color:var(--err); }
+.banner-desc { font-size:13.5px; color:var(--ink-2); margin-top:5px; line-height:1.6; }
+.banner-desc code { font-family:var(--mono); font-size:12.5px; background:rgba(0,0,0,.05); padding:1px 6px; border-radius:4px; }
+.spinner { width:22px; height:22px; border:2.5px solid var(--line-2); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; flex-shrink:0; margin-top:1px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.dots span { display:inline-block; width:5px; height:5px; border-radius:50%; background:currentColor; margin:0 2px; animation:pd 1.2s ease-in-out infinite; }
+.dots span:nth-child(2){animation-delay:.2s;} .dots span:nth-child(3){animation-delay:.4s;}
+@keyframes pd { 0%,80%,100%{transform:scale(.7);opacity:.5;} 40%{transform:scale(1);opacity:1;} }
+.err-x { width:22px; height:22px; border-radius:50%; background:var(--err); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; margin-top:1px; }
+.zone-wrap { max-width:880px; margin:0 auto; }
+.sec-head { margin-bottom:18px; }
+.sec-head h2 { font-size:22px; font-weight:700; }
+.sec-head .desc { font-size:14px; color:var(--ink-2); margin-top:6px; }
+.group-label { font-size:13px; font-weight:600; color:var(--ink-2); margin:26px 0 12px; display:flex; align-items:center; gap:8px; }
+.group-label::after { content:''; flex:1; height:1px; background:var(--line); }
+.char-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.char-card { background:var(--panel); border-radius:var(--r-md); overflow:hidden; box-shadow:var(--shadow-card); transition:transform .15s, box-shadow .15s; }
+.char-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-pop); }
+.char-photo { width:100%; aspect-ratio:4/5; object-fit:cover; display:block; background:var(--panel-2); }
+.char-body { padding:14px 16px; }
+.char-top { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.char-name { font-size:17px; font-weight:600; }
+.char-field { font-size:13px; line-height:1.55; color:var(--ink-2); margin-bottom:5px; }
+.char-field .k { color:var(--ink-3); }
+.char-field .v { color:var(--ink); }
+.editable { border-bottom:1px dashed transparent; cursor:text; transition:background .15s, border-color .15s; border-radius:3px; padding:0 2px; }
+.editable:hover { background:#f0eefe; border-bottom-color:var(--line-2); }
+.editable:focus { outline:none; background:var(--accent-bg); border-bottom:1.5px solid var(--accent); }
+.chip { display:inline-flex; align-items:center; padding:3px 10px; border-radius:6px; font-size:12px; font-weight:600; white-space:nowrap; }
+.chip--lead { background:var(--ok-bg); color:var(--ok); }
+.chip--sup { background:var(--accent-bg); color:var(--accent); }
+.chip--anta { background:var(--err-bg); color:var(--err); }
+.chip--extra { background:var(--panel-2); color:var(--ink-2); border:1px solid var(--line); }
+.chip--scene { background:#e4eefb; color:#2563a8; }
+.chip--prop { background:var(--warn-bg); color:var(--warn); }
+.chip--shot { background:var(--panel-2); color:var(--ink); border:1px solid var(--line); }
+.chip--dur { background:transparent; color:var(--ink-2); border:1px solid var(--line-2); }
+.mini-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+.mini-card { background:var(--panel); border-radius:var(--r-md); box-shadow:var(--shadow-card); display:flex; gap:14px; padding:14px; align-items:stretch; transition:transform .15s, box-shadow .15s; }
+.mini-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-pop); }
+.mini-thumb { width:96px; height:96px; border-radius:10px; object-fit:cover; flex-shrink:0; background:var(--panel-2); }
+.mini-body { flex:1; min-width:0; }
+.mini-body .top { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.mini-body .nm { font-size:16px; font-weight:600; }
+.mini-body .ln { font-size:13px; color:var(--ink-2); line-height:1.5; margin-bottom:4px; }
+.mini-body .ln .k { color:var(--ink-3); }
+.btn-group { display:flex; gap:14px; margin-top:32px; align-items:center; flex-wrap:wrap; }
+.result-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:20px; gap:14px; flex-wrap:wrap; }
+.result-head h2 { font-size:22px; font-weight:700; }
+.result-actions { display:flex; gap:10px; }
+.shot-list { display:flex; flex-direction:column; gap:14px; }
+.shot-card { background:var(--panel); border-radius:var(--r-md); box-shadow:var(--shadow-card); display:grid; grid-template-columns:200px 1fr; overflow:hidden; transition:box-shadow .15s; }
+.shot-card:hover { box-shadow:var(--shadow-pop); }
+.shot-img { width:100%; height:100%; min-height:150px; object-fit:cover; display:block; background:var(--panel-2); }
+.shot-body { padding:18px 20px; }
+.shot-top { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+.shot-no { font-family:var(--mono); font-size:17px; font-weight:600; color:var(--accent); }
+.shot-mood { margin-left:auto; font-size:12px; color:var(--ink-3); }
+.shot-visual { font-size:15px; line-height:1.6; margin-bottom:12px; }
+.shot-meta { border-top:1px solid var(--line); padding-top:10px; display:flex; flex-direction:column; gap:4px; font-size:13.5px; }
+.shot-meta .k { color:var(--ink-3); margin-right:6px; }
+.shot-meta .dia { font-style:italic; }
+.json-toggle { display:flex; align-items:center; gap:10px; margin:32px 0 14px; font-size:13px; color:var(--ink-2); cursor:pointer; user-select:none; }
+.json-toggle::before,.json-toggle::after { content:''; flex:1; height:1px; background:var(--line); }
+.json-block { background:#1c1c1e; border-radius:var(--r-md); padding:20px; overflow-x:auto; box-shadow:var(--shadow-pop); }
+.json-block pre { margin:0; } .json-block code { font-family:var(--mono); font-size:13px; line-height:1.7; color:#e6e6e6; white-space:pre; }
+.assets-summary { display:flex; align-items:center; gap:12px; padding:14px 20px; background:var(--ok-bg); border-radius:var(--r-md); margin:0 auto 22px; max-width:880px; font-size:14px; color:var(--ok); }
+.assets-summary .ok { width:22px; height:22px; border-radius:50%; background:var(--ok); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; }
+.zone--hidden { display:none !important; }
+@media (max-width:1024px){ .sidebar{display:none;} .char-grid{grid-template-columns:repeat(2,1fr);} }
+@media (max-width:640px){
+  .hero h1{font-size:32px;} .char-grid,.mini-grid{grid-template-columns:1fr;}
+  .shot-card{grid-template-columns:1fr;} .shot-img{min-height:160px;} .content{padding:8px 16px 70px;}
+  .stepper{flex-wrap:wrap;gap:8px;} .step-line{display:none;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="side-inner">
+      <div class="brand">
+        <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5v14M5 5h12M5 12h8M5 19h14"/><circle cx="17.5" cy="13" r="3"/></svg></span>
+        <span class="name">NovelReel</span>
+      </div>
+      <div class="nav-item on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 9h18M8 6V4M16 6V4"/></svg>小说 Agent</div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>资产</div>
+      <div class="side-foot">NovelReel v0.1 · 教学版<br>小说 → 分镜剧本 → 短视频</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar"><span class="ghost-link">教学版 · 本地运行</span></div>
+    <div class="content">
+
+      <section id="zone-input">
+        <div class="hero">
+          <h1>小说 <span class="disp">Agent</span>，把故事拆成分镜</h1>
+          <p class="sub">贴一段小说，自动拆出角色 · 场景 · 道具 · <span class="u">分镜剧本</span></p>
+        </div>
+        <div class="tabs"><div class="tab on">粘贴小说</div></div>
+        <div class="input-card">
+          <textarea id="novel" class="novel-area" placeholder="在这里粘贴你的小说文本，支持 4000 字以内的中文小说片段。例如把一个章节复制进来，AI 会自动找出所有角色、场景和道具，再拆成分镜剧本……"></textarea>
+          <div class="card-foot">
+            <div class="foot-left">
+              <span class="mini-field">期望分镜数 <input id="shots" type="number" min="1" max="20" placeholder="自定"></span>
+              <span class="cc" id="cc">0 / 4000</span>
+            </div>
+            <button class="btn-pill-dark" id="start-btn" onclick="startProcess()">开始处理 →</button>
+          </div>
+        </div>
+        <div class="below-hint">支持 4000 字以内中文小说 · 点「开始处理」后自动提取角色场景道具</div>
+      </section>
+
+      <div class="collapsed-bar zone--hidden" id="zone-collapsed">
+        <span class="caret">▼</span><span class="label">原文</span><span class="meta" id="novel-len">0 字</span>
+        <span class="sp"></span><button class="link-ghost" onclick="resetAll()">重新输入</button>
+      </div>
+
+      <div class="stepper zone--hidden" id="zone-stepper">
+        <div class="step" id="st1"><span class="dot">1</span>提取资产</div>
+        <div class="step-line" id="sl1"></div>
+        <div class="step" id="st2"><span class="dot">2</span>审核确认</div>
+        <div class="step-line" id="sl2"></div>
+        <div class="step" id="st3"><span class="dot">3</span>生成分镜</div>
+      </div>
+
+      <div class="banner banner--proc zone--hidden" id="zone-banner-proc">
+        <div class="spinner"></div>
+        <div><div class="banner-title"><span id="proc-text">正在分析小说，提取角色 · 场景 · 道具</span><span class="dots"><span></span><span></span><span></span></span></div>
+        <div class="banner-desc">处理在后台进行，可以离开但别关页面。</div></div>
+      </div>
+
+      <div class="banner banner--err zone--hidden" id="zone-banner-err">
+        <div class="err-x">✕</div>
+        <div><div class="banner-title" id="err-title">出错了</div>
+        <div class="banner-desc" id="err-desc"></div>
+        <div style="margin-top:14px"><button class="btn-pill-line" onclick="resetAll()">重新开始</button></div></div>
+      </div>
+
+      <div class="assets-summary zone--hidden" id="zone-asset-summary">
+        <span class="ok">✓</span><span id="summary-text">分镜剧本生成完毕</span>
+      </div>
+
+      <section class="zone-wrap zone--hidden" id="zone-assets">
+        <div class="sec-head"><h2 id="assets-title">提取结果</h2>
+        <div class="desc">点一下文字即可直接修改，确认后开始生成分镜；也可以跳过审核。</div></div>
+        <div id="char-block"><div class="group-label">角色</div><div class="char-grid" id="char-grid"></div></div>
+        <div id="scene-block"><div class="group-label">场景</div><div class="mini-grid" id="scene-grid"></div></div>
+        <div id="prop-block"><div class="group-label">道具</div><div class="mini-grid" id="prop-grid"></div></div>
+        <div class="btn-group">
+          <button class="btn-pill-dark" onclick="confirmAssets()">确认，开始生成分镜</button>
+          <button class="link-ghost" onclick="confirmAssets()">跳过审核，直接生成</button>
+        </div>
+      </section>
+
+      <section class="zone-wrap zone--hidden" id="zone-result">
+        <div class="result-head"><h2 id="result-title">分镜剧本</h2>
+        <div class="result-actions"><button class="btn-pill-line" id="copy-btn" onclick="copyJSON()">复制 JSON</button><button class="btn-pill-line" onclick="downloadJSON()">下载 JSON</button></div></div>
+        <div class="shot-list" id="shot-list"></div>
+        <div class="json-toggle" onclick="toggleJSON()">查看原始 JSON</div>
+        <div class="json-block zone--hidden" id="json-block"><pre><code id="json-code"></code></pre></div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ======== NovelReel 前端：真实 API + 轮询 ========
+const $ = id => document.getElementById(id);
+const API = '/api';
+// MVP 阶段没有真实生成的角色图，用一组占位图（按名字哈希挑一张，保证同名同图）
+const PLACEHOLDERS = ['assets/portraits/elder.jpg','assets/portraits/girl.jpg','assets/portraits/woman.jpg','assets/scenes/shop.jpg','assets/scenes/rain-alley.jpg','assets/scenes/watch.jpg','assets/scenes/cover-city.jpg','assets/scenes/cover-portrait.jpg'];
+function imgFor(name, offset=0){ let h=offset; for(const ch of (name||'')) h=(h*31+ch.charCodeAt(0))%PLACEHOLDERS.length; return PLACEHOLDERS[(h%PLACEHOLDERS.length+PLACEHOLDERS.length)%PLACEHOLDERS.length]; }
+function esc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+let currentId = null, pollTimer = null, lastScript = null;
+
+function show(id){ $(id).classList.remove('zone--hidden'); }
+function hide(id){ $(id).classList.add('zone--hidden'); }
+function hideFlow(){ ['zone-banner-proc','zone-banner-err','zone-asset-summary','zone-assets','zone-result'].forEach(hide); }
+function setStep(el,cls){ $(el).className='step'+(cls?' step--'+cls:''); $(el).querySelector('.dot').textContent=cls==='done'?'✓':cls==='error'?'✕':el.slice(-1); }
+function setLine(el,d){ $(el).className='step-line'+(d?' step-line--done':''); }
+function steps(s1,s2,s3,l1,l2){ setStep('st1',s1);setStep('st2',s2);setStep('st3',s3);setLine('sl1',l1);setLine('sl2',l2); }
+
+$('novel').addEventListener('input',e=>{ const n=e.target.value.length; const cc=$('cc'); cc.textContent=n+' / 4000'; cc.style.color=(n>4000)?'var(--err)':'var(--ink-3)'; });
+
+async function startProcess(){
+  const text = $('novel').value.trim();
+  if(text.length<50){ alert('文本太短，请粘贴至少 50 字的完整段落。'); return; }
+  if(text.length>4000){ alert('超出 4000 字上限，请精简后重试。'); return; }
+  const shots = parseInt($('shots').value)||null;
+  $('start-btn').disabled = true;
+  try{
+    const r = await fetch(API+'/projects',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({novel_text:text, expected_shots:shots, auto_run:true})});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'创建失败'); }
+    const data = await r.json();
+    currentId = data.id;
+    hide('zone-input'); show('zone-collapsed'); show('zone-stepper');
+    $('novel-len').textContent = text.length+' 字';
+    enterProcessing('正在分析小说，提取角色 · 场景 · 道具','extract');
+    startPolling();
+  }catch(err){ showError('创建项目失败', err.message); $('start-btn').disabled=false; }
+}
+
+function enterProcessing(text, phase){
+  hideFlow(); show('zone-banner-proc'); $('proc-text').textContent=text;
+  if(phase==='extract') steps('active','','',false,false);
+  else steps('done','done','active',true,true);
+}
+
+function startPolling(){ if(pollTimer) clearInterval(pollTimer); pollTimer=setInterval(poll,2000); poll(); }
+function stopPolling(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
+
+async function poll(){
+  if(!currentId) return;
+  try{
+    const r = await fetch(API+'/projects/'+currentId);
+    if(!r.ok) throw new Error('查询状态失败');
+    handleStatus(await r.json());
+  }catch(err){ /* 网络抖动，下次轮询再试 */ }
+}
+
+function handleStatus(p){
+  switch(p.status){
+    case 'extracting': enterProcessing('正在分析小说，提取角色 · 场景 · 道具','extract'); break;
+    case 'assets_extracted': stopPolling(); renderAssets(p); break;
+    case 'generating': enterProcessing('资产已确认，正在生成分镜剧本','gen'); break;
+    case 'script_generated':
+    case 'done': stopPolling(); loadResult(); break;
+    case 'error': stopPolling(); showError('处理出错', p.error_message||'未知错误'); break;
+  }
+}
+
+function renderAssets(p){
+  hideFlow(); show('zone-assets'); steps('done','active','',true,false);
+  $('assets-title').textContent = `提取到 ${p.characters.length} 个角色 · ${p.scenes.length} 个场景 · ${p.props.length} 个道具`;
+  const roleChip = r => ({'主角':'lead','配角':'sup','反派':'anta'}[r]||'extra');
+  $('char-grid').innerHTML = p.characters.map((c,i)=>`
+    <div class="char-card">
+      <img class="char-photo" src="${imgFor(c.name,i)}" alt="">
+      <div class="char-body">
+        <div class="char-top"><span class="chip chip--${roleChip(c.role)}">${esc(c.role||'角色')}</span><span class="char-name editable" contenteditable>${esc(c.name)}</span></div>
+        <div class="char-field"><span class="k">外貌：</span><span class="v editable" contenteditable>${esc(c.appearance)}</span></div>
+        <div class="char-field"><span class="k">性格：</span><span class="v editable" contenteditable>${esc(c.personality)}</span></div>
+      </div>
+    </div>`).join('') || '<p style="color:var(--ink-3)">未提取到角色</p>';
+  $('scene-block').style.display = p.scenes.length?'':'none';
+  $('scene-grid').innerHTML = p.scenes.map((s,i)=>`
+    <div class="mini-card"><img class="mini-thumb" src="${imgFor(s.name,i+3)}" alt="">
+      <div class="mini-body"><div class="top"><span class="chip chip--scene">场景</span><span class="nm editable" contenteditable>${esc(s.name)}</span></div>
+      <div class="ln"><span class="k">描述：</span><span class="editable" contenteditable>${esc(s.description)}</span></div>
+      <div class="ln"><span class="k">情绪：</span><span class="editable" contenteditable>${esc(s.mood)}</span></div></div>
+    </div>`).join('');
+  $('prop-block').style.display = p.props.length?'':'none';
+  $('prop-grid').innerHTML = p.props.map((pr,i)=>`
+    <div class="mini-card"><img class="mini-thumb" src="${imgFor(pr.name,i+5)}" alt="">
+      <div class="mini-body"><div class="top"><span class="chip chip--prop">道具</span><span class="nm editable" contenteditable>${esc(pr.name)}</span></div>
+      <div class="ln"><span class="k">外观：</span><span class="editable" contenteditable>${esc(pr.description)}</span></div>
+      <div class="ln"><span class="k">作用：</span><span class="editable" contenteditable>${esc(pr.significance)}</span></div></div>
+    </div>`).join('');
+}
+
+async function confirmAssets(){
+  enterProcessing('资产已确认，正在生成分镜剧本','gen');
+  try{
+    const r = await fetch(API+'/projects/'+currentId+'/run',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({stop_for_review:false})});
+    if(!r.ok) throw new Error('触发生成失败');
+    startPolling();
+  }catch(err){ showError('生成分镜失败', err.message); }
+}
+
+async function loadResult(){
+  try{
+    const r = await fetch(API+'/projects/'+currentId+'/script');
+    if(!r.ok) throw new Error('获取剧本失败');
+    lastScript = await r.json();
+    renderResult(lastScript);
+  }catch(err){ showError('获取剧本失败', err.message); }
+}
+
+function renderResult(script){
+  hideFlow(); steps('done','done','done',true,true);
+  show('zone-asset-summary'); show('zone-result');
+  $('summary-text').textContent = `分镜剧本生成完毕，共 ${script.shots.length} 个分镜`;
+  $('result-title').textContent = `分镜剧本 · 共 ${script.shots.length} 个分镜`;
+  $('shot-list').innerHTML = script.shots.map((s,i)=>`
+    <div class="shot-card"><img class="shot-img" src="${imgFor(s.visual_description, i)}" alt="">
+      <div class="shot-body">
+        <div class="shot-top"><span class="shot-no">#${String(s.index).padStart(2,'0')}</span>
+          <span class="chip chip--shot">${esc(s.shot_type)}</span><span class="chip chip--dur">${s.duration_hint}s</span>
+          <span class="shot-mood">情绪：${esc(s.mood)}</span></div>
+        <div class="shot-visual">${esc(s.visual_description)}</div>
+        <div class="shot-meta">
+          <div><span class="k">出镜：</span>${(s.characters_present||[]).map(esc).join('、')||'—'}</div>
+          <div><span class="k">对白：</span><span class="dia">${s.dialogue?esc(s.dialogue):'（无）'}</span></div>
+          <div><span class="k">字幕：</span>${esc(s.caption)}</div>
+        </div>
+      </div></div>`).join('');
+  $('json-code').textContent = JSON.stringify(script, null, 2);
+}
+
+function showError(title, desc){
+  stopPolling(); hideFlow(); show('zone-banner-err'); setStep('st1','error');
+  $('err-title').textContent = title;
+  $('err-desc').innerHTML = '可能原因：豆包接口超时 / 密钥未配置 / 文本过短。<br>详细信息：<code>'+esc(desc)+'</code>';
+}
+
+function resetAll(){
+  stopPolling(); currentId=null; lastScript=null;
+  $('novel').value=''; $('shots').value=''; $('cc').textContent='0 / 4000'; $('start-btn').disabled=false;
+  hideFlow(); hide('zone-collapsed'); hide('zone-stepper'); show('zone-input');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function toggleJSON(){ $('json-block').classList.toggle('zone--hidden'); }
+function copyJSON(){
+  if(!lastScript) return;
+  const t=JSON.stringify(lastScript,null,2);
+  const done=()=>{ const b=$('copy-btn'); const o=b.textContent; b.textContent='已复制！'; setTimeout(()=>b.textContent=o,2000); };
+  if(navigator.clipboard) navigator.clipboard.writeText(t).then(done,done); else done();
+}
+function downloadJSON(){
+  if(!lastScript) return;
+  const blob = new Blob([JSON.stringify(lastScript,null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='novelreel-script.json'; a.click(); URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>
