@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NovelReel · 高保真原型</title>
+<!--
+  高保真可交互原型 v2 —— 参考小云雀（xyq.jianying.com）设计语言重做。
+  浅灰白底 + 左侧白色圆角侧边栏 + 黑色主操作 + 大圆角白卡 + 真实图片（非 SVG 头像）+ 紫色点缀。
+  右下角「原型导航」切换 5 个状态。确认后作为前端 index.html 起手稿。
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Playfair+Display:ital,wght@1,600;1,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* 小云雀同款：浅灰白底系 */
+  --bg:#f4f4f5;            /* 页面浅灰底 */
+  --panel:#ffffff;          /* 白色面板/侧边栏/卡片 */
+  --panel-2:#fafafa;        /* 次级浅白 */
+  --ink:#1a1a1a;            /* 主文字/黑色主操作 */
+  --ink-2:#5c5c5c;          /* 次要文字 */
+  --ink-3:#9b9b9b;          /* 占位/弱文字 */
+  --line:#ececec;           /* 边框 */
+  --line-2:#e0e0e0;         /* 强边框 */
+  --accent:#7c5cff;         /* 紫色点缀（示例/高亮/进行中）*/
+  --accent-bg:#efeaff;
+  --ok:#1f9d55; --ok-bg:#e3f6ec;
+  --warn:#b07d18; --warn-bg:#fbf0d4;
+  --err:#e0483d; --err-bg:#fdeae8;
+
+  --r-sm:8px; --r-md:14px; --r-lg:20px; --r-xl:28px;
+  --shadow-card:0 1px 2px rgba(0,0,0,.04), 0 8px 24px -12px rgba(0,0,0,.10);
+  --shadow-pop:0 12px 40px -8px rgba(0,0,0,.18);
+  --font:'Noto Sans SC','PingFang SC',sans-serif;
+  --mono:'JetBrains Mono',Consolas,monospace;
+  --display:'Playfair Display',serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--ink); font-family:var(--font); font-size:15px; -webkit-font-smoothing:antialiased; }
+
+.app { display:flex; min-height:100vh; }
+
+/* ===== 左侧白色圆角侧边栏（小云雀同款）===== */
+.sidebar { width:248px; flex-shrink:0; padding:16px; }
+.side-inner { background:var(--panel); border-radius:var(--r-lg); padding:20px 16px; height:calc(100vh - 32px); position:sticky; top:16px; box-shadow:var(--shadow-card); display:flex; flex-direction:column; }
+.brand { display:flex; align-items:center; gap:10px; padding:4px 8px 22px; }
+.brand .logo { width:34px; height:34px; border-radius:10px; background:var(--ink); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.brand .logo svg { width:19px; height:19px; }
+.brand .name { font-size:19px; font-weight:700; letter-spacing:-.01em; }
+.nav-item { display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:12px; font-size:15px; font-weight:500; color:var(--ink-2); cursor:pointer; transition:background .15s, color .15s; margin-bottom:4px; }
+.nav-item svg { width:18px; height:18px; flex-shrink:0; opacity:.8; }
+.nav-item:hover { background:var(--panel-2); color:var(--ink); }
+.nav-item.on { background:#f0eefe; color:var(--accent); font-weight:600; }
+.nav-item.on svg { opacity:1; }
+.side-foot { margin-top:auto; padding:14px 10px 4px; font-size:12px; color:var(--ink-3); line-height:1.6; border-top:1px solid var(--line); }
+
+/* ===== 主区 ===== */
+.main { flex:1; min-width:0; display:flex; flex-direction:column; }
+.topbar { display:flex; align-items:center; justify-content:flex-end; gap:14px; padding:18px 32px; }
+.topbar .ghost-link { font-size:14px; color:var(--ink-2); display:flex; align-items:center; gap:6px; cursor:pointer; }
+.btn-dark { background:var(--ink); color:#fff; border:none; border-radius:24px; padding:10px 24px; font-size:15px; font-weight:600; font-family:var(--font); cursor:pointer; transition:transform .12s, box-shadow .15s; }
+.btn-dark:hover { transform:translateY(-1px); box-shadow:0 8px 20px -6px rgba(0,0,0,.4); }
+.btn-dark:active { transform:translateY(0); }
+
+.content { padding:8px 32px 80px; max-width:1100px; width:100%; margin:0 auto; }
+
+/* hero 标题区 */
+.hero { text-align:center; padding:40px 0 28px; }
+.hero h1 { font-size:46px; font-weight:700; letter-spacing:-.02em; line-height:1.15; }
+.hero h1 .disp { font-family:var(--display); font-style:italic; font-weight:700; letter-spacing:0; }
+.hero .sub { font-size:16px; color:var(--ink-2); margin-top:16px; }
+.hero .sub .u { background:linear-gradient(transparent 60%, var(--accent-bg) 60%); padding:0 2px; }
+
+/* tab 切换 */
+.tabs { display:flex; gap:4px; justify-content:center; max-width:720px; margin:0 auto; background:transparent; }
+.tab { flex:1; text-align:center; padding:14px; font-size:15px; font-weight:600; color:var(--ink-3); cursor:pointer; border-radius:var(--r-md) var(--r-md) 0 0; display:flex; align-items:center; justify-content:center; gap:8px; transition:color .15s, background .15s; }
+.tab.on { color:var(--ink); background:var(--panel); }
+.tab svg { width:17px; height:17px; }
+
+/* 大白卡输入区 */
+.input-card { background:var(--panel); border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg); box-shadow:var(--shadow-card); max-width:720px; margin:0 auto; padding:28px; }
+.drop-zone { border:1.5px dashed var(--line-2); border-radius:var(--r-md); padding:48px 24px; text-align:center; transition:border-color .2s, background .2s; }
+.drop-zone:hover { border-color:var(--accent); background:#fcfbff; }
+.drop-actions { display:flex; gap:14px; justify-content:center; margin-bottom:18px; }
+.drop-hint { font-size:13px; color:var(--ink-3); }
+.btn-pill-dark { background:var(--ink); color:#fff; border:none; border-radius:22px; padding:11px 22px; font-size:14px; font-weight:600; font-family:var(--font); cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:transform .12s; }
+.btn-pill-dark:hover { transform:translateY(-1px); }
+.btn-pill-line { background:#fff; color:var(--ink); border:1.5px solid var(--line-2); border-radius:22px; padding:11px 22px; font-size:14px; font-weight:600; font-family:var(--font); cursor:pointer; transition:border-color .15s; }
+.btn-pill-line:hover { border-color:var(--ink); }
+
+.novel-area { width:100%; min-height:180px; border:none; outline:none; resize:vertical; font-family:var(--font); font-size:15px; line-height:1.8; color:var(--ink); background:transparent; }
+.novel-area::placeholder { color:var(--ink-3); }
+.card-foot { display:flex; align-items:center; justify-content:space-between; margin-top:16px; padding-top:16px; border-top:1px solid var(--line); flex-wrap:wrap; gap:12px; }
+.foot-left { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+.mini-field { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-2); }
+.mini-field input { width:64px; padding:7px 10px; border:1.5px solid var(--line-2); border-radius:10px; text-align:center; font-family:var(--font); font-size:14px; outline:none; }
+.mini-field input:focus { border-color:var(--accent); }
+.cc { font-family:var(--mono); font-size:12px; color:var(--ink-3); }
+
+.below-hint { text-align:center; margin-top:18px; font-size:13px; color:var(--ink-3); display:flex; align-items:center; justify-content:center; gap:18px; }
+.below-hint .lnk { color:var(--ink-2); cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px; }
+
+/* 我的项目（真实图片三连，仿小云雀）*/
+.projects { margin-top:56px; }
+.proj-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+.proj-head h2 { font-size:19px; font-weight:700; }
+.proj-head .all { font-size:13px; color:var(--ink-2); cursor:pointer; }
+.proj-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+.proj-card { background:var(--panel); border-radius:var(--r-md); padding:12px; box-shadow:var(--shadow-card); cursor:pointer; transition:transform .15s, box-shadow .15s; }
+.proj-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-pop); }
+.proj-imgs { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; border-radius:10px; overflow:hidden; position:relative; aspect-ratio:16/9; }
+.proj-imgs img { width:100%; height:100%; object-fit:cover; display:block; }
+.proj-tag { position:absolute; top:8px; left:8px; background:var(--accent-bg); color:var(--accent); font-size:11px; font-weight:600; padding:3px 9px; border-radius:6px; }
+.proj-title { font-size:15px; font-weight:600; margin:12px 4px 6px; }
+.proj-meta { display:flex; align-items:center; justify-content:space-between; margin:0 4px 4px; font-size:12px; color:var(--ink-3); font-family:var(--mono); }
+.proj-meta .ep { background:var(--panel-2); border:1px solid var(--line); border-radius:6px; padding:2px 8px; }
+
+/* ===== stepper ===== */
+.stepper { display:flex; align-items:center; justify-content:center; margin:8px auto 32px; max-width:640px; }
+.step { display:flex; align-items:center; gap:9px; padding:8px 18px; border-radius:22px; font-size:14px; font-weight:500; background:var(--panel); border:1px solid var(--line); color:var(--ink-3); white-space:nowrap; transition:all .25s; }
+.step .dot { width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; border:1.5px solid currentColor; }
+.step--active { background:var(--accent-bg); color:var(--accent); border-color:var(--accent); font-weight:600; }
+.step--done { background:var(--ok-bg); color:var(--ok); border-color:rgba(31,157,85,.4); }
+.step--error { background:var(--err-bg); color:var(--err); border-color:rgba(224,72,61,.5); font-weight:600; }
+.step-line { width:40px; height:1.5px; background:var(--line-2); margin:0 6px; transition:background .25s; }
+.step-line--done { background:rgba(31,157,85,.4); }
+
+/* 折叠原文条 */
+.collapsed-bar { display:flex; align-items:center; gap:12px; padding:14px 20px; background:var(--panel); border-radius:var(--r-md); margin-bottom:22px; box-shadow:var(--shadow-card); max-width:880px; margin-left:auto; margin-right:auto; }
+.collapsed-bar .caret { color:var(--ink-3); font-size:11px; }
+.collapsed-bar .label { font-weight:600; font-size:14px; }
+.collapsed-bar .meta { font-family:var(--mono); font-size:12px; color:var(--ink-3); }
+.collapsed-bar .sp { margin-left:auto; }
+.link-ghost { background:none; border:none; color:var(--ink-2); font-size:13px; cursor:pointer; font-family:var(--font); text-decoration:underline dotted; text-underline-offset:3px; }
+.link-ghost:hover { color:var(--ink); }
+
+/* 处理中横幅 */
+.banner { display:flex; align-items:flex-start; gap:14px; padding:20px 22px; border-radius:var(--r-md); margin:0 auto 24px; max-width:880px; }
+.banner--proc { background:var(--panel); box-shadow:var(--shadow-card); border:1px solid var(--accent-bg); }
+.banner--err { background:var(--err-bg); border:1px solid rgba(224,72,61,.35); }
+.banner-title { font-size:15px; font-weight:600; display:flex; align-items:center; gap:8px; }
+.banner--proc .banner-title { color:var(--accent); }
+.banner--err .banner-title { color:var(--err); }
+.banner-desc { font-size:13.5px; color:var(--ink-2); margin-top:5px; line-height:1.6; }
+.banner-desc code { font-family:var(--mono); font-size:12.5px; background:rgba(0,0,0,.05); padding:1px 6px; border-radius:4px; }
+.spinner { width:22px; height:22px; border:2.5px solid var(--line-2); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; flex-shrink:0; margin-top:1px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.dots span { display:inline-block; width:5px; height:5px; border-radius:50%; background:currentColor; margin:0 2px; animation:pd 1.2s ease-in-out infinite; }
+.dots span:nth-child(2){animation-delay:.2s;} .dots span:nth-child(3){animation-delay:.4s;}
+@keyframes pd { 0%,80%,100%{transform:scale(.7);opacity:.5;} 40%{transform:scale(1);opacity:1;} }
+.err-x { width:22px; height:22px; border-radius:50%; background:var(--err); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; margin-top:1px; }
+
+/* ===== 资产审核区 ===== */
+.zone-wrap { max-width:880px; margin:0 auto; }
+.sec-head { margin-bottom:18px; }
+.sec-head h2 { font-size:22px; font-weight:700; }
+.sec-head .desc { font-size:14px; color:var(--ink-2); margin-top:6px; }
+.group-label { font-size:13px; font-weight:600; color:var(--ink-2); margin:26px 0 12px; display:flex; align-items:center; gap:8px; }
+.group-label::after { content:''; flex:1; height:1px; background:var(--line); }
+
+.char-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.char-card { background:var(--panel); border-radius:var(--r-md); overflow:hidden; box-shadow:var(--shadow-card); transition:transform .15s, box-shadow .15s; }
+.char-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-pop); }
+.char-photo { width:100%; aspect-ratio:4/5; object-fit:cover; display:block; background:var(--panel-2); }
+.char-body { padding:14px 16px; }
+.char-top { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.char-name { font-size:17px; font-weight:600; }
+.char-field { font-size:13px; line-height:1.55; color:var(--ink-2); margin-bottom:5px; }
+.char-field .k { color:var(--ink-3); }
+.char-field .v { color:var(--ink); }
+.editable { border-bottom:1px dashed transparent; cursor:text; transition:background .15s, border-color .15s; border-radius:3px; padding:0 2px; }
+.editable:hover { background:#f0eefe; border-bottom-color:var(--line-2); }
+.editable:focus { outline:none; background:var(--accent-bg); border-bottom:1.5px solid var(--accent); }
+
+.chip { display:inline-flex; align-items:center; padding:3px 10px; border-radius:6px; font-size:12px; font-weight:600; white-space:nowrap; }
+.chip--lead { background:var(--ok-bg); color:var(--ok); }
+.chip--sup { background:var(--accent-bg); color:var(--accent); }
+.chip--anta { background:var(--err-bg); color:var(--err); }
+.chip--extra { background:var(--panel-2); color:var(--ink-2); border:1px solid var(--line); }
+.chip--scene { background:#e4eefb; color:#2563a8; }
+.chip--prop { background:var(--warn-bg); color:var(--warn); }
+.chip--shot { background:var(--panel-2); color:var(--ink); border:1px solid var(--line); }
+.chip--dur { background:transparent; color:var(--ink-2); border:1px solid var(--line-2); }
+
+/* 场景/道具小卡（带缩略图）*/
+.mini-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+.mini-card { background:var(--panel); border-radius:var(--r-md); box-shadow:var(--shadow-card); display:flex; gap:14px; padding:14px; align-items:stretch; transition:transform .15s, box-shadow .15s; }
+.mini-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-pop); }
+.mini-thumb { width:96px; height:96px; border-radius:10px; object-fit:cover; flex-shrink:0; background:var(--panel-2); }
+.mini-body { flex:1; min-width:0; }
+.mini-body .top { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.mini-body .nm { font-size:16px; font-weight:600; }
+.mini-body .ln { font-size:13px; color:var(--ink-2); line-height:1.5; margin-bottom:4px; }
+.mini-body .ln .k { color:var(--ink-3); }
+
+.btn-group { display:flex; gap:14px; margin-top:32px; align-items:center; flex-wrap:wrap; }
+
+/* ===== 分镜结果 ===== */
+.result-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:20px; gap:14px; flex-wrap:wrap; }
+.result-head h2 { font-size:22px; font-weight:700; }
+.result-actions { display:flex; gap:10px; }
+.shot-list { display:flex; flex-direction:column; gap:14px; }
+.shot-card { background:var(--panel); border-radius:var(--r-md); box-shadow:var(--shadow-card); display:grid; grid-template-columns:200px 1fr; overflow:hidden; transition:box-shadow .15s; }
+.shot-card:hover { box-shadow:var(--shadow-pop); }
+.shot-img { width:100%; height:100%; min-height:150px; object-fit:cover; display:block; background:var(--panel-2); }
+.shot-body { padding:18px 20px; }
+.shot-top { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+.shot-no { font-family:var(--mono); font-size:17px; font-weight:600; color:var(--accent); }
+.shot-mood { margin-left:auto; font-size:12px; color:var(--ink-3); }
+.shot-visual { font-size:15px; line-height:1.6; margin-bottom:12px; }
+.shot-meta { border-top:1px solid var(--line); padding-top:10px; display:flex; flex-direction:column; gap:4px; font-size:13.5px; }
+.shot-meta .k { color:var(--ink-3); margin-right:6px; }
+.shot-meta .dia { font-style:italic; }
+
+.json-toggle { display:flex; align-items:center; gap:10px; margin:32px 0 14px; font-size:13px; color:var(--ink-2); cursor:pointer; user-select:none; }
+.json-toggle::before,.json-toggle::after { content:''; flex:1; height:1px; background:var(--line); }
+.json-block { background:#1c1c1e; border-radius:var(--r-md); padding:20px; overflow-x:auto; box-shadow:var(--shadow-pop); }
+.json-block pre { margin:0; } .json-block code { font-family:var(--mono); font-size:13px; line-height:1.7; color:#e6e6e6; white-space:pre; }
+.json-block .jk{color:#c8a3ff;} .json-block .js{color:#8fd6a0;} .json-block .jn{color:#f0a868;} .json-block .jp{color:#7a7a7a;}
+
+.assets-summary { display:flex; align-items:center; gap:12px; padding:14px 20px; background:var(--ok-bg); border-radius:var(--r-md); margin:0 auto 22px; max-width:880px; font-size:14px; color:var(--ok); }
+.assets-summary .ok { width:22px; height:22px; border-radius:50%; background:var(--ok); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; }
+
+.zone--hidden { display:none !important; }
+
+/* 原型导航 */
+.proto-nav { position:fixed; right:18px; bottom:18px; z-index:500; background:var(--ink); border-radius:16px; padding:12px 14px; box-shadow:0 12px 36px rgba(0,0,0,.32); }
+.proto-nav .pt { font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:#888; margin-bottom:9px; }
+.proto-nav .pbtns { display:flex; flex-direction:column; gap:6px; }
+.proto-nav button { font-family:var(--font); font-size:12.5px; color:#eee; background:transparent; border:1px solid #3a3a3a; border-radius:8px; padding:7px 12px; cursor:pointer; text-align:left; transition:all .15s; }
+.proto-nav button:hover { border-color:var(--accent); }
+.proto-nav button.on { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+
+@media (max-width:1024px){ .sidebar{display:none;} .proj-grid{grid-template-columns:repeat(2,1fr);} .char-grid{grid-template-columns:repeat(2,1fr);} }
+@media (max-width:640px){
+  .hero h1{font-size:32px;} .proj-grid,.char-grid,.mini-grid{grid-template-columns:1fr;}
+  .shot-card{grid-template-columns:1fr;} .shot-img{min-height:160px;} .content{padding:8px 16px 70px;}
+  .stepper{flex-wrap:wrap;gap:8px;} .step-line{display:none;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== 左侧白色圆角侧边栏 ===== -->
+  <aside class="sidebar">
+    <div class="side-inner">
+      <div class="brand">
+        <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5v14M5 5h12M5 12h8M5 19h14"/><circle cx="17.5" cy="13" r="3"/></svg></span>
+        <span class="name">NovelReel</span>
+      </div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>创作</div>
+      <div class="nav-item on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 9h18M8 6V4M16 6V4"/></svg>小说 Agent</div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>资产</div>
+      <div class="side-foot">NovelReel v0.1 · 教学版<br>小说 → 分镜剧本 → 短视频</div>
+    </div>
+  </aside>
+
+  <!-- ===== 主区 ===== -->
+  <div class="main">
+    <div class="topbar">
+      <span class="ghost-link">下载 APP ▾</span>
+      <button class="btn-dark">登录</button>
+    </div>
+
+    <div class="content">
+
+      <!-- ZONE 1 输入区 -->
+      <section id="zone-input">
+        <div class="hero">
+          <h1>小说 <span class="disp">Agent</span>，把故事拆成分镜</h1>
+          <p class="sub">全面应用 <span class="u">豆包大模型</span>，贴一段小说，自动拆出角色 · 场景 · 道具 · 分镜剧本</p>
+        </div>
+
+        <div class="tabs">
+          <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M8 8l4-4 4 4M4 20h16"/></svg>粘贴小说</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/></svg>AI 写小说</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>自由画布</div>
+        </div>
+
+        <div class="input-card">
+          <textarea id="novel" class="novel-area" placeholder="在这里粘贴你的小说文本，支持 4000 字以内的中文小说片段。例如把一个章节复制进来，AI 会自动找出所有角色、场景和道具，再拆成分镜剧本……"></textarea>
+          <div class="card-foot">
+            <div class="foot-left">
+              <span class="mini-field">期望分镜数 <input type="number" min="1" max="20" placeholder="自定"></span>
+              <span class="cc" id="cc">0 / 4000</span>
+            </div>
+            <button class="btn-pill-dark" onclick="proto('processing')">开始处理 →</button>
+          </div>
+        </div>
+        <div class="below-hint">
+          <span>支持 4000 字以内中文小说</span>
+          <span class="lnk" onclick="proto('done')">跳过审核，直接看分镜结果 →</span>
+        </div>
+
+        <!-- 我的项目（真实图片三连，仿小云雀）-->
+        <div class="projects">
+          <div class="proj-head"><h2>我的项目</h2><span class="all">全部 ›</span></div>
+          <div class="proj-grid">
+            <div class="proj-card">
+              <div class="proj-imgs"><span class="proj-tag">示例</span>
+                <img src="assets/portraits/elder.jpg" alt=""><img src="assets/scenes/shop.jpg" alt=""><img src="assets/scenes/watch.jpg" alt="">
+              </div>
+              <div class="proj-title">残灯巷的修表人</div>
+              <div class="proj-meta"><span>2026-06-05 01:32</span><span class="ep">5 镜</span></div>
+            </div>
+            <div class="proj-card">
+              <div class="proj-imgs"><span class="proj-tag">示例</span>
+                <img src="assets/scenes/cover-city.jpg" alt=""><img src="assets/portraits/woman.jpg" alt=""><img src="assets/scenes/rain-alley.jpg" alt="">
+              </div>
+              <div class="proj-title">都市夜归人</div>
+              <div class="proj-meta"><span>2026-06-04 22:10</span><span class="ep">6 镜</span></div>
+            </div>
+            <div class="proj-card">
+              <div class="proj-imgs"><span class="proj-tag">示例</span>
+                <img src="assets/portraits/girl.jpg" alt=""><img src="assets/scenes/cover-portrait.jpg" alt=""><img src="assets/scenes/rain-alley.jpg" alt="">
+              </div>
+              <div class="proj-title">花店与雨季</div>
+              <div class="proj-meta"><span>2026-06-03 14:48</span><span class="ep">4 镜</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 折叠原文条 -->
+      <div class="collapsed-bar zone--hidden" id="zone-collapsed">
+        <span class="caret">▼</span><span class="label">原文</span><span class="meta">1240 字</span>
+        <span class="sp"></span><button class="link-ghost" onclick="proto('input')">重新输入</button>
+      </div>
+
+      <!-- ZONE 2 stepper -->
+      <div class="stepper zone--hidden" id="zone-stepper">
+        <div class="step" id="st1"><span class="dot">1</span>提取资产</div>
+        <div class="step-line" id="sl1"></div>
+        <div class="step" id="st2"><span class="dot">2</span>审核确认</div>
+        <div class="step-line" id="sl2"></div>
+        <div class="step" id="st3"><span class="dot">3</span>生成分镜</div>
+      </div>
+
+      <!-- 处理中横幅 -->
+      <div class="banner banner--proc zone--hidden" id="zone-banner-proc">
+        <div class="spinner"></div>
+        <div><div class="banner-title" id="proc-title">正在分析小说，提取角色 · 场景 · 道具<span class="dots"><span></span><span></span><span></span></span></div>
+        <div class="banner-desc">通常需要 10–30 秒，处理在后台进行，可以离开但别关页面。</div></div>
+      </div>
+
+      <!-- 错误横幅 -->
+      <div class="banner banner--err zone--hidden" id="zone-banner-err">
+        <div class="err-x">✕</div>
+        <div><div class="banner-title">提取资产时出错</div>
+        <div class="banner-desc">可能原因：豆包接口超时，或输入文本过短（少于 50 字）。<br>详细信息：<code>Connection timeout after 30s</code></div>
+        <div style="margin-top:14px"><button class="btn-pill-line" onclick="proto('processing')">重试此步骤</button></div></div>
+      </div>
+
+      <!-- 完成态资产摘要 -->
+      <div class="assets-summary zone--hidden" id="zone-asset-summary">
+        <span class="ok">✓</span><span>已确认 <b>3 个角色 · 2 个场景 · 2 个道具</b>，分镜剧本生成完毕</span>
+      </div>
+
+      <!-- ZONE 3 资产审核 -->
+      <section class="zone-wrap zone--hidden" id="zone-assets">
+        <div class="sec-head"><h2>提取到 3 个角色 · 2 个场景 · 2 个道具</h2>
+        <div class="desc">点一下文字即可直接修改，确认后开始生成分镜；也可以跳过审核。</div></div>
+
+        <div class="group-label">角色</div>
+        <div class="char-grid">
+          <div class="char-card">
+            <img class="char-photo" src="assets/portraits/elder.jpg" alt="">
+            <div class="char-body">
+              <div class="char-top"><span class="chip chip--lead">主角</span><span class="char-name editable" contenteditable>沈师傅</span></div>
+              <div class="char-field"><span class="k">外貌：</span><span class="v editable" contenteditable>六十多岁，背微驼，圆框老花镜，靛蓝粗布褂子</span></div>
+              <div class="char-field"><span class="k">性格：</span><span class="v editable" contenteditable>沉默寡言、专注、藏着旧情</span></div>
+            </div>
+          </div>
+          <div class="char-card">
+            <img class="char-photo" src="assets/portraits/girl.jpg" alt="">
+            <div class="char-body">
+              <div class="char-top"><span class="chip chip--sup">配角</span><span class="char-name editable" contenteditable>林小满</span></div>
+              <div class="char-field"><span class="k">外貌：</span><span class="v editable" contenteditable>二十出头，花店学徒，撑伞少女</span></div>
+              <div class="char-field"><span class="k">性格：</span><span class="v editable" contenteditable>真诚、念旧、情绪外露</span></div>
+            </div>
+          </div>
+          <div class="char-card">
+            <img class="char-photo" src="assets/portraits/woman.jpg" alt="">
+            <div class="char-body">
+              <div class="char-top"><span class="chip chip--extra">回忆人物</span><span class="char-name editable" contenteditable>云</span></div>
+              <div class="char-field"><span class="k">外貌：</span><span class="v editable" contenteditable>仅在表背刻字中出现，未正面描写</span></div>
+              <div class="char-field"><span class="k">性格：</span><span class="v editable" contenteditable>沈师傅年轻时的定情之人</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="group-label">场景</div>
+        <div class="mini-grid">
+          <div class="mini-card">
+            <img class="mini-thumb" src="assets/scenes/shop.jpg" alt="">
+            <div class="mini-body"><div class="top"><span class="chip chip--scene">场景</span><span class="nm editable" contenteditable>残灯巷旧钟表铺</span></div>
+            <div class="ln"><span class="k">描述：</span><span class="editable" contenteditable>巷尾旧铺，褪色齿轮招牌，昏黄台灯</span></div>
+            <div class="ln"><span class="k">情绪：</span><span class="editable" contenteditable>安静、怀旧</span></div></div>
+          </div>
+          <div class="mini-card">
+            <img class="mini-thumb" src="assets/scenes/rain-alley.jpg" alt="">
+            <div class="mini-body"><div class="top"><span class="chip chip--scene">场景</span><span class="nm editable" contenteditable>雨夜青石板巷</span></div>
+            <div class="ln"><span class="k">描述：</span><span class="editable" contenteditable>小雨，青石板泛水光，铺外的夜色</span></div>
+            <div class="ln"><span class="k">情绪：</span><span class="editable" contenteditable>湿润、克制的伤感</span></div></div>
+          </div>
+        </div>
+
+        <div class="group-label">道具</div>
+        <div class="mini-grid">
+          <div class="mini-card">
+            <img class="mini-thumb" src="assets/scenes/watch.jpg" alt="">
+            <div class="mini-body"><div class="top"><span class="chip chip--prop">道具</span><span class="nm editable" contenteditable>黄铜怀表</span></div>
+            <div class="ln"><span class="k">外观：</span><span class="editable" contenteditable>缠枝莲表壳，背刻「赠阿沈，民国廿三年，云」</span></div>
+            <div class="ln"><span class="k">作用：</span><span class="editable" contenteditable>串起两代人的定情信物</span></div></div>
+          </div>
+          <div class="mini-card">
+            <img class="mini-thumb" src="assets/scenes/cover-portrait.jpg" alt="">
+            <div class="mini-body"><div class="top"><span class="chip chip--prop">道具</span><span class="nm editable" contenteditable>修表工具</span></div>
+            <div class="ln"><span class="k">外观：</span><span class="editable" contenteditable>镊子、放大镜、极细钢丝、台灯</span></div>
+            <div class="ln"><span class="k">作用：</span><span class="editable" contenteditable>承载「修复」这一核心动作</span></div></div>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn-pill-dark" onclick="proto('generating')">确认，开始生成分镜</button>
+          <button class="link-ghost" onclick="proto('generating')">跳过审核，直接生成</button>
+        </div>
+      </section>
+
+      <!-- ZONE 4 分镜结果 -->
+      <section class="zone-wrap zone--hidden" id="zone-result">
+        <div class="result-head"><h2>分镜剧本 · 共 5 个分镜</h2>
+        <div class="result-actions"><button class="btn-pill-line" id="copy-btn" onclick="copyJSON()">复制 JSON</button><button class="btn-pill-line" onclick="alert('原型演示：真实页面会下载 novelreel-script.json')">下载 JSON</button></div></div>
+
+        <div class="shot-list">
+          <div class="shot-card"><img class="shot-img" src="assets/scenes/shop.jpg" alt="">
+            <div class="shot-body"><div class="shot-top"><span class="shot-no">#01</span><span class="chip chip--shot">全景</span><span class="chip chip--dur">4s</span><span class="shot-mood">情绪：怀旧 · 静</span></div>
+            <div class="shot-visual">雨夜，残灯巷尽头的旧钟表铺亮着一盏昏黄台灯，褪色的齿轮招牌在雨里若隐若现，镜头缓缓推近店门。</div>
+            <div class="shot-meta"><div><span class="k">出镜：</span>沈师傅</div><div><span class="k">对白：</span><span class="dia">（无）</span></div><div><span class="k">字幕：</span>残灯巷尽头，有一家修表三十年的铺子</div></div></div>
+          </div>
+          <div class="shot-card"><img class="shot-img" src="assets/portraits/girl.jpg" alt="">
+            <div class="shot-body"><div class="shot-top"><span class="shot-no">#02</span><span class="chip chip--shot">中景</span><span class="chip chip--dur">3s</span><span class="shot-mood">情绪：急切</span></div>
+            <div class="shot-visual">林小满撑伞冲进铺子，雨水顺着伞沿滴落，她紧攥着一只停摆的黄铜怀表，神情焦急。</div>
+            <div class="shot-meta"><div><span class="k">出镜：</span>林小满</div><div><span class="k">对白：</span><span class="dia">"师傅，这表……能修好吗？"</span></div><div><span class="k">字幕：</span>奶奶留下的唯一念想</div></div></div>
+          </div>
+          <div class="shot-card"><img class="shot-img" src="assets/scenes/watch.jpg" alt="">
+            <div class="shot-body"><div class="shot-top"><span class="shot-no">#03</span><span class="chip chip--shot">特写</span><span class="chip chip--dur">5s</span><span class="shot-mood">情绪：专注</span></div>
+            <div class="shot-visual">台灯下，沈师傅布满老茧的手指用镊子撬开怀表后盖，放大镜里游丝纤细，一颗灰尘卡在齿轮间。</div>
+            <div class="shot-meta"><div><span class="k">出镜：</span>沈师傅</div><div><span class="k">对白：</span><span class="dia">（无）</span></div><div><span class="k">字幕：</span>再坏的表，到他手里都能复活</div></div></div>
+          </div>
+          <div class="shot-card"><img class="shot-img" src="assets/portraits/elder.jpg" alt="">
+            <div class="shot-body"><div class="shot-top"><span class="shot-no">#04</span><span class="chip chip--shot">近景</span><span class="chip chip--dur">4s</span><span class="shot-mood">情绪：动容</span></div>
+            <div class="shot-visual">怀表重新滴答走动，林小满眼眶泛红；沈师傅的目光却落在表背的刻字上，手微微颤抖。</div>
+            <div class="shot-meta"><div><span class="k">出镜：</span>沈师傅、林小满</div><div><span class="k">对白：</span><span class="dia">"赠阿沈，民国廿三年，云。"</span></div><div><span class="k">字幕：</span>那行字，他等了三十年</div></div></div>
+          </div>
+          <div class="shot-card"><img class="shot-img" src="assets/scenes/rain-alley.jpg" alt="">
+            <div class="shot-body"><div class="shot-top"><span class="shot-no">#05</span><span class="chip chip--shot">全景</span><span class="chip chip--dur">5s</span><span class="shot-mood">情绪：释然</span></div>
+            <div class="shot-visual">雨停了，铺子里只剩怀表的滴答声；镜头拉远，老人与少女的身影定格在昏黄灯光中。</div>
+            <div class="shot-meta"><div><span class="k">出镜：</span>沈师傅、林小满</div><div><span class="k">对白：</span><span class="dia">（无）</span></div><div><span class="k">字幕：</span>有些等待，本身就是答案</div></div></div>
+          </div>
+        </div>
+
+        <div class="json-toggle" onclick="toggleJSON()">查看原始 JSON</div>
+        <div class="json-block zone--hidden" id="json-block">
+<pre><code><span class="jp">{</span>
+  <span class="jk">"project_id"</span>: <span class="js">"a1b2c3"</span>,
+  <span class="jk">"scenes"</span>: <span class="jp">[</span>
+    <span class="jp">{</span>
+      <span class="jk">"index"</span>: <span class="jn">1</span>,
+      <span class="jk">"shot_type"</span>: <span class="js">"全景"</span>,
+      <span class="jk">"visual_description"</span>: <span class="js">"雨夜，残灯巷尽头的旧钟表铺亮着昏黄台灯…"</span>,
+      <span class="jk">"characters_present"</span>: <span class="jp">[</span><span class="js">"沈师傅"</span><span class="jp">]</span>,
+      <span class="jk">"dialogue"</span>: <span class="js">""</span>,
+      <span class="jk">"caption"</span>: <span class="js">"残灯巷尽头，有一家修表三十年的铺子"</span>,
+      <span class="jk">"mood"</span>: <span class="js">"怀旧"</span>,
+      <span class="jk">"duration_hint"</span>: <span class="jn">4</span>
+    <span class="jp">}</span>, <span class="jp">{</span> <span class="jp">...</span> <span class="jp">}</span>
+  <span class="jp">]</span>
+<span class="jp">}</span></code></pre>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- 原型导航（真实页面删除）-->
+<div class="proto-nav">
+  <div class="pt">原型状态切换</div>
+  <div class="pbtns">
+    <button data-s="input" class="on" onclick="proto('input')">① 初始空态</button>
+    <button data-s="processing" onclick="proto('processing')">② 处理中</button>
+    <button data-s="assets" onclick="proto('assets')">③ 资产审核</button>
+    <button data-s="generating" onclick="proto('generating')">④ 生成中</button>
+    <button data-s="done" onclick="proto('done')">⑤ 分镜结果</button>
+    <button data-s="error" onclick="proto('error')">⑥ 错误态</button>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+function show(id){ $(id).classList.remove('zone--hidden'); }
+function hide(id){ $(id).classList.add('zone--hidden'); }
+function hideAll(){ ['zone-input','zone-collapsed','zone-stepper','zone-banner-proc','zone-banner-err','zone-asset-summary','zone-assets','zone-result'].forEach(hide); }
+function setStep(el,cls){ $(el).className='step'+(cls?' step--'+cls:''); $(el).querySelector('.dot').textContent=cls==='done'?'✓':cls==='error'?'✕':el.slice(-1); }
+function setLine(el,d){ $(el).className='step-line'+(d?' step-line--done':''); }
+
+function proto(state){
+  hideAll();
+  document.querySelectorAll('.proto-nav button').forEach(b=>b.classList.toggle('on',b.dataset.s===state));
+  setStep('st1',''); setStep('st2',''); setStep('st3',''); setLine('sl1',false); setLine('sl2',false);
+  if(state==='input'){ show('zone-input'); window.scrollTo({top:0,behavior:'smooth'}); return; }
+  show('zone-collapsed'); show('zone-stepper');
+  if(state==='processing'){ setStep('st1','active'); show('zone-banner-proc'); $('proc-title').firstChild.textContent='正在分析小说，提取角色 · 场景 · 道具'; }
+  else if(state==='assets'){ setStep('st1','done'); setLine('sl1',true); setStep('st2','active'); show('zone-assets'); }
+  else if(state==='generating'){ setStep('st1','done'); setLine('sl1',true); setStep('st2','done'); setLine('sl2',true); setStep('st3','active'); show('zone-banner-proc'); $('proc-title').firstChild.textContent='资产已确认，正在生成分镜剧本'; }
+  else if(state==='done'){ setStep('st1','done'); setLine('sl1',true); setStep('st2','done'); setLine('sl2',true); setStep('st3','done'); show('zone-asset-summary'); show('zone-result'); }
+  else if(state==='error'){ setStep('st1','error'); show('zone-banner-err'); }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+$('novel').addEventListener('input',e=>{ const n=e.target.value.length; const cc=$('cc'); cc.textContent=n+' / 4000'; cc.style.color=n>4000?'var(--err)':'var(--ink-3)'; });
+function toggleJSON(){ $('json-block').classList.toggle('zone--hidden'); }
+function copyJSON(){ const b=$('copy-btn'); const t=b.textContent; b.textContent='已复制！'; setTimeout(()=>b.textContent=t,2000); }
+</script>
+</body>
+</html>
