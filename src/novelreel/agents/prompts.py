@@ -80,3 +80,20 @@ GENERATE_SCRIPT_PROMPT = """请把下面的小说改编成一份短视频分镜�
 ---
 {novel}
 ---"""
+
+
+# ============ P1 生图：角色设计图 / 分镜图的提示词 ============
+
+# 统一画风前缀，让全项目视觉一致
+STYLE_PREFIX = "电影感写实风格，柔和光影，竖屏构图，高质量，"
+
+CHARACTER_SHEET_PROMPT = (
+    STYLE_PREFIX
+    + "角色设计图，人物立绘，干净背景。角色：{name}，{role}。外貌：{appearance}。气质：{personality}。"
+    + "全身或半身像，清晰展示人物外貌特征，便于后续分镜参考。"
+)
+
+STORYBOARD_PROMPT = (
+    STYLE_PREFIX
+    + "分镜画面：{visual}。镜头：{shot_type}。情绪：{mood}。{character_note}"
+)
