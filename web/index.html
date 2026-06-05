@@ -61,6 +61,19 @@ body { background:var(--bg); color:var(--ink); font-family:var(--font); font-siz
 .mini-field input:focus { border-color:var(--accent); }
 .cc { font-family:var(--mono); font-size:12px; color:var(--ink-3); }
 .below-hint { text-align:center; margin-top:18px; font-size:13px; color:var(--ink-3); }
+.projects { margin-top:56px; }
+.proj-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+.proj-head h2 { font-size:19px; font-weight:700; }
+.proj-head .all { font-size:13px; color:var(--ink-3); }
+.proj-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+.proj-card { background:var(--panel); border-radius:var(--r-md); padding:12px; box-shadow:var(--shadow-card); cursor:pointer; transition:transform .15s, box-shadow .15s; }
+.proj-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-pop); }
+.proj-imgs { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; border-radius:10px; overflow:hidden; position:relative; aspect-ratio:16/9; }
+.proj-imgs img { width:100%; height:100%; object-fit:cover; display:block; }
+.proj-tag { position:absolute; top:8px; left:8px; background:var(--accent-bg); color:var(--accent); font-size:11px; font-weight:600; padding:3px 9px; border-radius:6px; }
+.proj-title { font-size:15px; font-weight:600; margin:12px 4px 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.proj-meta { display:flex; align-items:center; justify-content:space-between; margin:0 4px 4px; font-size:12px; color:var(--ink-3); font-family:var(--mono); }
+.proj-meta .ep { background:var(--panel-2); border:1px solid var(--line); border-radius:6px; padding:2px 8px; }
 .stepper { display:flex; align-items:center; justify-content:center; margin:8px auto 32px; max-width:640px; }
 .step { display:flex; align-items:center; gap:9px; padding:8px 18px; border-radius:22px; font-size:14px; font-weight:500; background:var(--panel); border:1px solid var(--line); color:var(--ink-3); white-space:nowrap; transition:all .25s; }
 .step .dot { width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; border:1.5px solid currentColor; }
@@ -150,9 +163,9 @@ body { background:var(--bg); color:var(--ink); font-family:var(--font); font-siz
 .assets-summary { display:flex; align-items:center; gap:12px; padding:14px 20px; background:var(--ok-bg); border-radius:var(--r-md); margin:0 auto 22px; max-width:880px; font-size:14px; color:var(--ok); }
 .assets-summary .ok { width:22px; height:22px; border-radius:50%; background:var(--ok); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; }
 .zone--hidden { display:none !important; }
-@media (max-width:1024px){ .sidebar{display:none;} .char-grid{grid-template-columns:repeat(2,1fr);} }
+@media (max-width:1024px){ .sidebar{display:none;} .char-grid{grid-template-columns:repeat(2,1fr);} .proj-grid{grid-template-columns:repeat(2,1fr);} }
 @media (max-width:640px){
-  .hero h1{font-size:32px;} .char-grid,.mini-grid{grid-template-columns:1fr;}
+  .hero h1{font-size:32px;} .char-grid,.mini-grid,.proj-grid{grid-template-columns:1fr;}
   .shot-card{grid-template-columns:1fr;} .shot-img{min-height:160px;} .content{padding:8px 16px 70px;}
   .stepper{flex-wrap:wrap;gap:8px;} .step-line{display:none;}
 }
@@ -193,6 +206,11 @@ body { background:var(--bg); color:var(--ink); font-family:var(--font); font-siz
           </div>
         </div>
         <div class="below-hint">支持 4000 字以内中文小说 · 点「开始处理」后自动提取角色场景道具</div>
+
+        <div class="projects" id="my-projects" style="display:none">
+          <div class="proj-head"><h2>我的项目</h2><span class="all" id="proj-count"></span></div>
+          <div class="proj-grid" id="proj-grid"></div>
+        </div>
       </section>
 
       <div class="collapsed-bar zone--hidden" id="zone-collapsed">
@@ -396,6 +414,7 @@ function resetAll(){
   stopPolling(); currentId=null; lastScript=null;
   $('novel').value=''; $('shots').value=''; $('cc').textContent='0 / 4000'; $('start-btn').disabled=false;
   hideFlow(); hide('zone-collapsed'); hide('zone-stepper'); show('zone-input');
+  loadProjects();   // 回首页刷新项目列表（可能刚生成了新项目）
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -412,6 +431,49 @@ function downloadJSON(){
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download='novelreel-script.json'; a.click(); URL.revokeObjectURL(a.href);
 }
+
+// ---- 我的项目：加载列表 + 点开 ----
+async function loadProjects(){
+  try{
+    const r = await fetch(API+'/projects');
+    if(!r.ok) return;
+    const list = await r.json();
+    const box = $('my-projects');
+    if(!list.length){ box.style.display='none'; return; }
+    box.style.display='';
+    $('proj-count').textContent = `共 ${list.length} 个`;
+    // 三连封面图：用项目标题做种子各取一张占位图，保证同项目同图
+    $('proj-grid').innerHTML = list.map(p=>{
+      const imgs = [0,1,2].map(k=>imgFor(p.title, k*3)).map(src=>`<img src="${src}" alt="">`).join('');
+      const done = p.status==='done' || p.status==='script_generated';
+      const tag = done ? '<span class="proj-tag">已完成</span>' : '<span class="proj-tag" style="background:var(--warn-bg);color:var(--warn)">处理中</span>';
+      return `<div class="proj-card" onclick="openProject('${p.id}')">
+        <div class="proj-imgs">${tag}${imgs}</div>
+        <div class="proj-title">${esc(p.title)}</div>
+        <div class="proj-meta"><span>${esc((p.updated_at||'').slice(0,10))}</span><span class="ep">${p.shot_count} 镜</span></div>
+      </div>`;
+    }).join('');
+  }catch(err){ /* 列表加载失败不影响主流程 */ }
+}
+
+async function openProject(id){
+  currentId = id;
+  try{
+    const r = await fetch(API+'/projects/'+id);
+    if(!r.ok) throw new Error('项目不存在');
+    const p = await r.json();
+    hide('zone-input'); show('zone-collapsed'); show('zone-stepper');
+    // 折叠条显示原文字数（读不到就略）
+    $('novel-len').textContent = (p.title||'项目');
+    if(p.has_script){ await loadResult(); }
+    else if(p.status==='assets_extracted'){ renderAssets(p); }
+    else { startPolling(); }
+    window.scrollTo({top:0,behavior:'smooth'});
+  }catch(err){ showError('打开项目失败', err.message); }
+}
+
+// 页面首次加载时拉项目列表
+loadProjects();
 </script>
 </body>
 </html>
