@@ -32,18 +32,23 @@
 
 ```bash
 # 1. 安装依赖
-uv sync
+uv sync --extra dev
 
-# 2. 配置豆包密钥
-cp .env.example .env
-# 编辑 .env 填入火山引擎 API Key
-
-# 3. 跑测试
+# 2. 跑测试（不调真实 LLM，纯本地，秒过）
 uv run pytest
 
-# 4. 启动服务（后续步骤提供）
-uv run uvicorn novelreel.api:app --reload
+# 3a. 演示模式：假 LLM，无需密钥，立刻看效果
+uv run python scripts/serve_demo.py
+#   浏览器打开 http://127.0.0.1:8000
+
+# 3b. 真实模式：配好豆包密钥再用
+cp .env.example .env                       # 填入 NOVELREEL_LLM_API_KEY
+uv run python scripts/check_llm.py         # 先验证密钥通了
+uv run uvicorn novelreel.api:app --reload  # 启动
 ```
+
+完整架构讲解见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
+产品需求见 [docs/PRD.md](docs/PRD.md)，设计规范见 [docs/DESIGN.md](docs/DESIGN.md)。
 
 ## 技术栈
 
