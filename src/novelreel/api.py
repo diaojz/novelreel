@@ -44,13 +44,14 @@ class CreateProjectBody(BaseModel):
 
 class RunBody(BaseModel):
     stop_for_review: bool = False  # True=提取完资产停下等审核
+    target: str = "script"          # script(P0) / storyboard(P1) / video(P2)
 
 
 # ---- 后台任务 ----
-def _background_run(project_id: str, stop_for_review: bool) -> None:
+def _background_run(project_id: str, stop_for_review: bool, target: str = "script") -> None:
     """后台执行编排（在 BackgroundTasks 里跑，不阻塞 HTTP）。"""
     project = pm.load(project_id)
-    run_all(project, pm, stop_for_review=stop_for_review)
+    run_all(project, pm, stop_for_review=stop_for_review, target=target)
 
 
 # ---- 接口 ----
@@ -75,8 +76,8 @@ def run_project(project_id: str, body: RunBody, bg: BackgroundTasks) -> dict:
     """触发编排继续推进（如：用户确认资产后继续生成分镜）。"""
     if not pm.exists(project_id):
         raise HTTPException(404, "项目不存在")
-    bg.add_task(_background_run, project_id, body.stop_for_review)
-    return {"id": project_id, "started": True}
+    bg.add_task(_background_run, project_id, body.stop_for_review, body.target)
+    return {"id": project_id, "started": True, "target": body.target}
 
 
 @app.get("/api/projects")
@@ -116,6 +117,7 @@ def get_project(project_id: str) -> dict:
         "scenes": [s.model_dump() for s in project.scenes],
         "props": [p.model_dump() for p in project.props],
         "has_script": bool(project.script_path),
+        "final_video": f"/media/{project.id}/{project.final_video}" if project.final_video else "",
     }
 
 
@@ -134,6 +136,12 @@ def get_script(project_id: str) -> dict:
 def health() -> dict:
     return {"ok": True}
 
+
+# ---- 生成产物静态托管 ----
+# 把 projects/ 挂到 /media，前端用 /media/<项目id>/storyboards/shot_01.png 加载生成的图。
+# 必须在挂载 web 之前（catch-all 的 / 会吞掉后面的路由）。
+pm.root.mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory=pm.root), name="media")
 
 # ---- 前端静态托管 ----
 # 把 web/ 挂到根路径，访问 http://127.0.0.1:8000/ 直接是前端页面。

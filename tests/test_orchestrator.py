@@ -78,3 +78,36 @@ def test_resume_from_extracted(tmp_path):
     assert result.detail["shots"] == 2
     # chat_json 一共只被调了 2 次（提取 1 + 生成 1），没重复提取
     assert llm.chat_json.call_count == 2
+
+
+def test_run_all_to_video_full_pipeline(tmp_path, monkeypatch):
+    """P2 全链路：小说→资产→剧本→角色图→分镜图→视频片段→合成成片。
+
+    LLM 用 mock；图/视频客户端无密钥 → 走占位图/占位视频（真实 ffmpeg 合成）。
+    验证编排器能一路把 target=video 跑到 final_video。
+    """
+    import shutil
+    if not shutil.which("ffmpeg"):
+        import pytest
+        pytest.skip("未装 ffmpeg")
+
+    # 清空 media 密钥，强制走降级（占位图/占位视频），不联网不花钱
+    monkeypatch.delenv("NOVELREEL_MEDIA_API_KEY", raising=False)
+    monkeypatch.delenv("NOVELREEL_LLM_API_KEY", raising=False)
+
+    pm = ProjectManager(root=tmp_path / "projects")
+    project = pm.create(NOVEL, title="到视频")
+    llm = _llm_returning(ASSETS, SHOTS)
+
+    result = orchestrator.run_all(project, pm, llm, target=orchestrator.TARGET_VIDEO)
+
+    assert result.status == "DONE", result.summary
+    final = pm.load(project.id)
+    assert final.status == ProjectStatus.DONE
+    # 每个阶段的产物都在
+    assert final.characters_drawn                       # 角色图
+    script = pm.load_script(final)
+    assert all(s.storyboard_image for s in script.shots)  # 分镜图
+    assert all(s.video_clip for s in script.shots)        # 视频片段
+    assert final.final_video                              # 成片
+    assert (pm.project_dir(final.id) / final.final_video).exists()

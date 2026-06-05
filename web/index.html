@@ -156,6 +156,8 @@ body { background:var(--bg); color:var(--ink); font-family:var(--font); font-siz
 .shot-meta { border-top:1px solid var(--line); padding-top:10px; display:flex; flex-direction:column; gap:4px; font-size:13.5px; }
 .shot-meta .k { color:var(--ink-3); margin-right:6px; }
 .shot-meta .dia { font-style:italic; }
+.final-video { width:100%; max-width:420px; border-radius:var(--r-md); box-shadow:var(--shadow-pop); display:block; margin:0 auto; background:#000; }
+.fv-cap { text-align:center; font-size:13px; color:var(--ok); margin:10px 0 24px; font-weight:600; }
 .json-toggle { display:flex; align-items:center; gap:10px; margin:32px 0 14px; font-size:13px; color:var(--ink-2); cursor:pointer; user-select:none; }
 .json-toggle::before,.json-toggle::after { content:''; flex:1; height:1px; background:var(--line); }
 .json-block { background:#1c1c1e; border-radius:var(--r-md); padding:20px; overflow-x:auto; box-shadow:var(--shadow-pop); }
@@ -257,7 +259,12 @@ body { background:var(--bg); color:var(--ink); font-family:var(--font); font-siz
 
       <section class="zone-wrap zone--hidden" id="zone-result">
         <div class="result-head"><h2 id="result-title">分镜剧本</h2>
-        <div class="result-actions"><button class="btn-pill-line" id="copy-btn" onclick="copyJSON()">复制 JSON</button><button class="btn-pill-line" onclick="downloadJSON()">下载 JSON</button></div></div>
+        <div class="result-actions">
+          <button class="btn-pill-dark" id="gen-video-btn" onclick="genVideo()" style="display:none">生成视频成片 →</button>
+          <button class="btn-pill-line" id="copy-btn" onclick="copyJSON()">复制 JSON</button>
+          <button class="btn-pill-line" onclick="downloadJSON()">下载 JSON</button>
+        </div></div>
+        <div id="final-video-box" style="display:none"></div>
         <div class="shot-list" id="shot-list"></div>
         <div class="json-toggle" onclick="toggleJSON()">查看原始 JSON</div>
         <div class="json-block zone--hidden" id="json-block"><pre><code id="json-code"></code></pre></div>
@@ -324,13 +331,24 @@ async function poll(){
   }catch(err){ /* 网络抖动，下次轮询再试 */ }
 }
 
+// 把项目内相对路径转成可访问的 /media URL
+function mediaUrl(rel){ return rel ? `/media/${currentId}/${rel}` : ''; }
+
 function handleStatus(p){
   switch(p.status){
     case 'extracting': enterProcessing('正在分析小说，提取角色 · 场景 · 道具','extract'); break;
     case 'assets_extracted': stopPolling(); renderAssets(p); break;
     case 'generating': enterProcessing('资产已确认，正在生成分镜剧本','gen'); break;
+    // P1/P2 中间态：统一显示「处理中」
+    case 'drawing_characters': enterProcessing('正在生成角色设计图','gen'); break;
+    case 'drawing_shots': enterProcessing('正在生成分镜画面','gen'); break;
+    case 'characters_drawn':
+    case 'shots_drawn': enterProcessing('画面生成中','gen'); break;
+    case 'generating_video': enterProcessing('正在生成视频片段（较慢，请耐心等）','gen'); break;
+    case 'video_generated':
+    case 'composing': enterProcessing('正在合成成片','gen'); break;
     case 'script_generated':
-    case 'done': stopPolling(); loadResult(); break;
+    case 'done': stopPolling(); loadResult(p); break;
     case 'error': stopPolling(); showError('处理出错', p.error_message||'未知错误'); break;
   }
 }
@@ -341,7 +359,7 @@ function renderAssets(p){
   const roleChip = r => ({'主角':'lead','配角':'sup','反派':'anta'}[r]||'extra');
   $('char-grid').innerHTML = p.characters.map((c,i)=>`
     <div class="char-card">
-      <img class="char-photo" src="${imgFor(c.name,i)}" alt="">
+      <img class="char-photo" src="${c.character_sheet?mediaUrl(c.character_sheet):imgFor(c.name,i)}" alt="">
       <div class="char-body">
         <div class="char-top"><span class="chip chip--${roleChip(c.role)}">${esc(c.role||'角色')}</span><span class="char-name editable" contenteditable>${esc(c.name)}</span></div>
         <div class="char-field"><span class="k">外貌：</span><span class="v editable" contenteditable>${esc(c.appearance)}</span></div>
@@ -374,25 +392,42 @@ async function confirmAssets(){
   }catch(err){ showError('生成分镜失败', err.message); }
 }
 
-async function loadResult(){
+async function loadResult(proj){
   try{
     const r = await fetch(API+'/projects/'+currentId+'/script');
     if(!r.ok) throw new Error('获取剧本失败');
     lastScript = await r.json();
-    renderResult(lastScript);
+    renderResult(lastScript, proj||{});
   }catch(err){ showError('获取剧本失败', err.message); }
 }
 
-function renderResult(script){
+function renderResult(script, proj){
   hideFlow(); steps('done','done','done',true,true);
   show('zone-asset-summary'); show('zone-result');
+  const hasImg = script.shots.some(s=>s.storyboard_image);
+  const hasVid = !!(proj && proj.final_video);
   $('summary-text').textContent = `分镜剧本生成完毕，共 ${script.shots.length} 个分镜`;
   $('result-title').textContent = `分镜剧本 · 共 ${script.shots.length} 个分镜`;
-  $('shot-list').innerHTML = script.shots.map((s,i)=>`
-    <div class="shot-card"><img class="shot-img" src="${imgFor(s.visual_description, i)}" alt="">
+
+  // 成片播放器（有成片才显示）
+  $('final-video-box').innerHTML = hasVid
+    ? `<video class="final-video" src="${proj.final_video}" controls playsinline></video><div class="fv-cap">🎬 已合成成片</div>`
+    : '';
+  $('final-video-box').style.display = hasVid ? '' : 'none';
+
+  // 「生成视频」按钮：还没成片时显示，点了跑 P2
+  const genBtn = $('gen-video-btn');
+  genBtn.style.display = hasVid ? 'none' : '';
+  genBtn.textContent = hasImg ? '生成视频成片 →' : '生成画面和视频 →';
+
+  $('shot-list').innerHTML = script.shots.map((s,i)=>{
+    const img = s.storyboard_image ? mediaUrl(s.storyboard_image) : imgFor(s.visual_description, i);
+    return `
+    <div class="shot-card"><img class="shot-img" src="${img}" alt="">
       <div class="shot-body">
         <div class="shot-top"><span class="shot-no">#${String(s.index).padStart(2,'0')}</span>
           <span class="chip chip--shot">${esc(s.shot_type)}</span><span class="chip chip--dur">${s.duration_hint}s</span>
+          ${s.video_clip?'<span class="chip chip--sup">▶ 有视频</span>':''}
           <span class="shot-mood">情绪：${esc(s.mood)}</span></div>
         <div class="shot-visual">${esc(s.visual_description)}</div>
         <div class="shot-meta">
@@ -400,8 +435,20 @@ function renderResult(script){
           <div><span class="k">对白：</span><span class="dia">${s.dialogue?esc(s.dialogue):'（无）'}</span></div>
           <div><span class="k">字幕：</span>${esc(s.caption)}</div>
         </div>
-      </div></div>`).join('');
+      </div></div>`;
+  }).join('');
   $('json-code').textContent = JSON.stringify(script, null, 2);
+}
+
+// 点「生成视频」：触发 P2（target=video），重新轮询
+async function genVideo(){
+  enterProcessing('正在生成画面和视频，这一步较慢，请耐心等…','gen');
+  try{
+    const r = await fetch(API+'/projects/'+currentId+'/run',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({stop_for_review:false, target:'video'})});
+    if(!r.ok) throw new Error('触发失败');
+    startPolling();
+  }catch(err){ showError('生成视频失败', err.message); }
 }
 
 function showError(title, desc){
@@ -465,7 +512,7 @@ async function openProject(id){
     hide('zone-input'); show('zone-collapsed'); show('zone-stepper');
     // 折叠条显示原文字数（读不到就略）
     $('novel-len').textContent = (p.title||'项目');
-    if(p.has_script){ await loadResult(); }
+    if(p.has_script){ await loadResult(p); }
     else if(p.status==='assets_extracted'){ renderAssets(p); }
     else { startPolling(); }
     window.scrollTo({top:0,behavior:'smooth'});
