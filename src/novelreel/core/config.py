@@ -45,3 +45,33 @@ class LLMConfig:
     def is_ready(self) -> bool:
         """密钥是否已配置。"""
         return bool(self.api_key)
+
+
+@dataclass
+class MediaConfig:
+    """图片 / 视频生成配置（P1 / P2 用，火山引擎方舟）。
+
+    复用文本那套 base_url 和 api_key（同一个火山引擎账号），只是模型名不同。
+    没配密钥时，生图/生视频客户端会自动降级成「占位图/占位视频」，流程照样跑通。
+    """
+
+    base_url: str
+    api_key: str
+    image_model: str
+    video_model: str
+
+    @classmethod
+    def from_env(cls) -> "MediaConfig":
+        return cls(
+            base_url=os.getenv(
+                "NOVELREEL_LLM_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3"
+            ),
+            api_key=os.getenv("NOVELREEL_MEDIA_API_KEY", "")
+            or os.getenv("NOVELREEL_LLM_API_KEY", ""),
+            image_model=os.getenv("NOVELREEL_IMAGE_MODEL", "doubao-seedream-4-0-250828"),
+            video_model=os.getenv("NOVELREEL_VIDEO_MODEL", "doubao-seedance-1-0-pro-250528"),
+        )
+
+    @property
+    def is_ready(self) -> bool:
+        return bool(self.api_key)

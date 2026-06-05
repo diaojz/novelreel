@@ -30,8 +30,10 @@ def _new_id() -> str:
 class ProjectStatus(str, Enum):
     """项目的整体状态。编排器靠它判断「现在该做哪一步」。
 
-    状态是单向推进的：
-    初始化 → 提取中 → 资产已提取 → 生成中 → 剧本已生成 → 完成
+    状态是单向推进的（P0 文本闭环 → P1 生图 → P2 生视频）：
+    初始化 → 提取中 → 资产已提取 → 生成剧本中 → 剧本已生成
+      → 画角色图中 → 角色图完成 → 画分镜图中 → 分镜图完成
+      → 生成视频中 → 视频完成 → 合成中 → 完成
     任意一步出错则进入 error。
     """
 
@@ -39,9 +41,18 @@ class ProjectStatus(str, Enum):
     EXTRACTING = "extracting"            # 正在提取角色/场景/道具
     ASSETS_EXTRACTED = "assets_extracted"  # 资产提取完毕，等待审核/生成
     GENERATING = "generating"            # 正在生成分镜剧本
-    SCRIPT_GENERATED = "script_generated"  # 分镜剧本已生成
-    DONE = "done"                        # 全流程完成
-    ERROR = "error"                      # 出错了
+    SCRIPT_GENERATED = "script_generated"  # 分镜剧本已生成（P0 闭环到此）
+    # ---- P1：生图 ----
+    DRAWING_CHARACTERS = "drawing_characters"  # 正在画角色设计图
+    CHARACTERS_DRAWN = "characters_drawn"      # 角色图完成
+    DRAWING_SHOTS = "drawing_shots"            # 正在画分镜图
+    SHOTS_DRAWN = "shots_drawn"                # 分镜图完成（P1 闭环到此）
+    # ---- P2：生视频 ----
+    GENERATING_VIDEO = "generating_video"      # 正在生成视频片段
+    VIDEO_GENERATED = "video_generated"        # 视频片段完成
+    COMPOSING = "composing"                    # 正在 ffmpeg 合成成片
+    DONE = "done"                              # 全流程完成
+    ERROR = "error"                            # 出错了
 
 
 class Character(BaseModel):
@@ -52,6 +63,9 @@ class Character(BaseModel):
     appearance: str = Field(default="", description="外貌描述，给后续生图用")
     personality: str = Field(default="", description="性格描述")
     role: str = Field(default="配角", description="主角 / 配角 / 反派 / 龙套 等")
+    character_sheet: str = Field(
+        default="", description="角色设计图路径（P1 生成）。后续所有分镜都参考它保一致"
+    )
 
 
 class Scene(BaseModel):
@@ -83,6 +97,8 @@ class Shot(BaseModel):
     caption: str = Field(default="", description="字幕文字")
     mood: str = Field(default="", description="情绪节奏")
     duration_hint: int = Field(default=4, description="建议时长（秒），给视频生成参考")
+    storyboard_image: str = Field(default="", description="分镜画面图路径（P1 生成）")
+    video_clip: str = Field(default="", description="分镜视频片段路径（P2 生成）")
 
 
 class Script(BaseModel):
@@ -114,6 +130,7 @@ class Project(BaseModel):
     props: list[Prop] = Field(default_factory=list)
 
     script_path: str = Field(default="", description="分镜剧本 JSON 的路径")
+    final_video: str = Field(default="", description="合成成片路径（P2 生成）")
     error_message: str = Field(default="", description="出错时的友好提示")
 
     created_at: str = Field(default_factory=_now)
@@ -127,3 +144,8 @@ class Project(BaseModel):
     def has_assets(self) -> bool:
         """是否已经提取出资产（三类里任一非空就算有）。"""
         return bool(self.characters or self.scenes or self.props)
+
+    @property
+    def characters_drawn(self) -> bool:
+        """是否所有角色都画好了设计图（有角色且每个都有 sheet）。"""
+        return bool(self.characters) and all(c.character_sheet for c in self.characters)
